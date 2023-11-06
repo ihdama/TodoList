@@ -7,17 +7,57 @@ import {
   View,
   Modal,
   Pressable,
+  FlatList,
 } from 'react-native';
 import React, {useState} from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import CheckBox from '@react-native-community/checkbox';
-import {log} from 'console';
 
 export default function App() {
   const [modalVisible, setModalVisible] = useState(false);
 
+  const [newTask, setNewTask] = useState('');
+  const [tasks, setTasks] = useState([]);
+
+  function createTask() {
+    setTasks(tasks => [{id: tasks.length + 1, title: newTask}, ...tasks]);
+  }
+
+  const [editedTask, setEditedTask] = useState({
+    // title: '',
+    // done: false,
+    // id: null,
+  });
+
+  function editTask(task) {
+    setTasks(tasks => {
+      return tasks.map(task =>
+        task.id === editedTask.id ? {...task, title: editedTask.title} : task,
+      );
+    });
+    setModalVisible(false);
+  }
+  function checkTask(selectedId) {
+    setTasks(tasks => {
+      return tasks.map(task =>
+        task.id === selectedId ? {...task, done: !task.done} : task,
+      );
+    });
+  }
+  function deleteTask(id) {
+    setTasks(tasks => {
+      return tasks.filter(task => task.id !== id);
+    });
+  }
+
+  const [centang, setCentang] = useState(false); //true
+
   return (
     <View style={{flex: 1}}>
+      <CheckBox
+        value={centang} // true
+        onValueChange={() => setCentang(centang === false ? true : false)}
+      />
       <StatusBar backgroundColor={'#2b0b55'} />
 
       {/* Header */}
@@ -29,35 +69,55 @@ export default function App() {
       {/* Input Tugas */}
       <View style={styles.viewInput}>
         <View style={styles.viewTextInput}>
-          <TextInput placeholder="Buat Tugas..." />
+          <TextInput
+            placeholder="Buat Tugas..."
+            // onChangeText={title => setNewTask(title)} // ✔️
+            onChangeText={setNewTask} // ✅
+          />
         </View>
         <View style={{width: 20}} />
-        <TouchableOpacity style={styles.btnAddTask}>
+        <TouchableOpacity style={styles.btnAddTask} onPress={createTask}>
           <Icon name={'plus'} size={27} color={'white'} />
         </TouchableOpacity>
       </View>
 
       {/* Render Tugas */}
-      <View style={styles.viewTask}>
-        <CheckBox />
+      {tasks.length === 0 && (
+        <Text style={{textAlign: 'center'}}>Tidak Ada Tugas</Text>
+      )}
 
-        <View style={styles.viewTaskContent}>
-          <Text style={styles.taskTitle}>Tugas</Text>
-          <View style={styles.line} />
-          <View>
-            <TouchableOpacity
-              style={{...styles.btnOption, backgroundColor: '#6600E7'}}
-              onPress={() => setModalVisible(true)}>
-              <Icon name={'pencil'} size={21} color={'white'} />
-            </TouchableOpacity>
-            <View style={{height: 10}} />
-            <TouchableOpacity
-              style={{...styles.btnOption, backgroundColor: 'tomato'}}>
-              <Icon name={'trash-can'} size={21} color={'white'} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      {tasks.length !== 0 &&
+        tasks.map(task => {
+          return (
+            <View key={task.id} style={styles.viewTask}>
+              <CheckBox
+                value={task.done}
+                onValueChange={() => checkTask(task.id)}
+              />
+
+              <View style={styles.viewTaskContent}>
+                <Text style={styles.taskTitle}>{task.title}</Text>
+                <View style={styles.line} />
+                <View>
+                  <TouchableOpacity
+                    style={{...styles.btnOption, backgroundColor: '#6600E7'}}
+                    onPress={() => {
+                      setModalVisible(true);
+                      setEditedTask(task);
+                    }}>
+                    <Icon name={'pencil'} size={21} color={'white'} />
+                  </TouchableOpacity>
+                  <View style={{height: 10}} />
+                  <TouchableOpacity
+                    style={{...styles.btnOption, backgroundColor: 'tomato'}}
+                    onPress={() => deleteTask(task.id)}>
+                    <Icon name={'trash-can'} size={21} color={'white'} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          );
+        })}
 
       {/* Modal Edit Tugas */}
       <Modal
@@ -81,12 +141,16 @@ export default function App() {
               </TouchableOpacity>
             </View>
             <TextInput
-              placeholder="Edit Tugas..."
+              // placeholder="Edit Tugas..."
               underlineColorAndroid={'#33007b'}
               style={{marginHorizontal: 10, paddingHorizontal: 10}}
+              value={editedTask.title}
+              onChangeText={textTitle =>
+                setEditedTask({...editedTask, title: textTitle})
+              }
             />
             <View style={{height: 10}} />
-            <TouchableOpacity style={styles.btnEditTask}>
+            <TouchableOpacity style={styles.btnEditTask} onPress={editTask}>
               <Text style={styles.textBtnEdit}>Edit</Text>
             </TouchableOpacity>
           </View>
@@ -146,10 +210,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewTaskContent: {
-    backgroundColor: 'white',
-    elevation: 5,
     flexDirection: 'row',
+    backgroundColor: 'white',
     flex: 1,
+    elevation: 5,
     borderRadius: 10,
     padding: 10,
     paddingHorizontal: 15,
